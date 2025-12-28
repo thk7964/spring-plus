@@ -1,11 +1,8 @@
 package org.example.expert.config;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.UnsupportedJwtException;
-import jakarta.servlet.FilterConfig;
-import jakarta.servlet.*;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -30,11 +27,9 @@ public class JwtFilter extends OncePerRequestFilter {
     @Override
     public void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws IOException, ServletException {
 
-
         String bearerJwt = request.getHeader("Authorization");
 
         if (bearerJwt == null || !bearerJwt.startsWith("Bearer ")) {
-            // 토큰이 없는 경우 400을 반환합니다.
             filterChain.doFilter(request, response);
             return;
         }
@@ -49,19 +44,21 @@ public class JwtFilter extends OncePerRequestFilter {
                 return;
             }
             Long userId = Long.parseLong(claims.getSubject());
-            String email = claims.get("email",String.class);
-            UserRole userRole = UserRole.valueOf(claims.get("userRole",String.class));
+            String email = claims.get("email", String.class);
+            UserRole userRole = UserRole.valueOf(claims.get("userRole", String.class));
+            String nickname= claims.get("nickname",String.class);
 
-            AuthUser authUser = new AuthUser(userId,email,userRole);
+            CustomUserDetails userDetails = new CustomUserDetails(userId, email, userRole, nickname);
+
             Authentication authentication = new UsernamePasswordAuthenticationToken(
-                    authUser,
+                    userDetails,
                     null,
-                    authUser.getAuthorities()
+                    userDetails.getAuthorities()
             );
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        }  catch (Exception e) {
+        } catch (Exception e) {
             log.error("Internal server error", e);
         }
 

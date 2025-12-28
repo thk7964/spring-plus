@@ -2,7 +2,7 @@ package org.example.expert.domain.todo.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.expert.client.WeatherClient;
-import org.example.expert.domain.common.dto.AuthUser;
+import org.example.expert.config.CustomUserDetails;
 import org.example.expert.domain.common.exception.InvalidRequestException;
 import org.example.expert.domain.todo.dto.request.TodoSaveRequest;
 import org.example.expert.domain.todo.dto.response.TodoResponse;
@@ -12,6 +12,7 @@ import org.example.expert.domain.todo.entity.Todo;
 import org.example.expert.domain.todo.repository.TodoRepository;
 import org.example.expert.domain.user.dto.response.UserResponse;
 import org.example.expert.domain.user.entity.User;
+import org.example.expert.domain.user.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,10 +28,12 @@ public class TodoService {
 
     private final TodoRepository todoRepository;
     private final WeatherClient weatherClient;
+    private final UserRepository userRepository;
 
     @Transactional
-    public TodoSaveResponse saveTodo(AuthUser authUser, TodoSaveRequest todoSaveRequest) {
-        User user = User.fromAuthUser(authUser);
+    public TodoSaveResponse saveTodo(CustomUserDetails userDetails, TodoSaveRequest todoSaveRequest) {
+
+        User user = User.fromCustomUserDetails(userDetails);
 
         String weather = weatherClient.getTodayWeather();
 
@@ -54,7 +57,7 @@ public class TodoService {
     public Page<TodoResponse> getTodos(int page, int size, String weather, LocalDateTime startTime, LocalDateTime endTime) {
         Pageable pageable = PageRequest.of(page - 1, size);
 
-        Page<Todo> todos = todoRepository.findAllByOrderByModifiedAtDesc(weather,startTime,endTime,pageable);
+        Page<Todo> todos = todoRepository.findAllByOrderByModifiedAtDesc(weather, startTime, endTime, pageable);
 
         return todos.map(todo -> new TodoResponse(
                 todo.getId(),
@@ -84,7 +87,7 @@ public class TodoService {
         );
     }
 
-    public Page<TodoSearchResponse> search(String titleKeyword, String nickname, LocalDateTime start, LocalDateTime end, Pageable pageable){
+    public Page<TodoSearchResponse> search(String titleKeyword, String nickname, LocalDateTime start, LocalDateTime end, Pageable pageable) {
         return todoRepository.searchTodoByMultiCondition(titleKeyword, nickname, start, end, pageable);
     }
 }
